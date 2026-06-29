@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+.env
+
+# Model artifacts under backend/app/ml/artifacts/ are intentionally tracked
+# (small, and the README promises the repo works immediately after clone).
