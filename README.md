@@ -6,6 +6,14 @@ rolling 60-second window with a swappable ML model (Isolation Forest or LSTM Aut
 persists everything to Postgres, and pushes live state to a React dashboard over WebSockets.
 Anomalies above threshold raise Slack/email alerts.
 
+![PulseAI dashboard: an About panel explaining nodes and anomaly scores, fleet health summary, grid of 50 nodes with status and anomaly score, the selected node's score and metric charts, and the alert feed](docs/screenshots/dashboard.png)
+
+*The live dashboard at default settings. A dismissible About panel explains what PulseAI does, what
+a node is (one server) and how to read the scores. Summary tiles count healthy / warning / critical nodes;
+each fleet card shows a node's status and current anomaly score. Selecting a node (or clicking
+one of its alerts) shows its anomaly score against the alert thresholds alongside its raw
+metrics, and the alert feed names the metric that deviated most.*
+
 ## Architecture
 
 ```
@@ -96,6 +104,25 @@ shipped artifacts in this repo are trained on synthetic data so the documented b
 numbers below stay reproducible; `--source db` is there to retrain against your own field data
 once you have some.
 
+### Running tests
+
+The backend test suite needs no Docker, Redis or Postgres: Redis is faked with `fakeredis`,
+and Postgres writes and outbound alerts are mocked.
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pip install torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu  # LSTM tests; skipped if missing
+pytest
+```
+
+It covers rolling-window feature extraction, the Redis-backed window store and alert cooldown,
+the full consumer loop (persist → score → alert → `XACK`, malformed entries, cooldown
+deduplication, and reclaiming entries left pending by a dead replica), the API, and smoke tests
+against the shipped model artifacts that fail if a retrain pushes the false positive rate above
+5% (Isolation Forest) / 25% (LSTM) or stops detecting injected spikes. GitHub Actions
+(`.github/workflows/ci.yml`) runs it on every push and PR, alongside the frontend lint and build.
+
 ### Switching models
 
 ```bash
@@ -160,6 +187,12 @@ architecture (Phase 1 → Phase 2 upgrade path), with Isolation Forest as the be
 default.
 
 ## Demo anomaly rate
+
+![Node 14 detail: the anomaly score jumps from about 0.25 to 1.0 as CPU, memory, latency and error rate spike together for about 5 seconds](docs/screenshots/node-detail.png)
+
+*A single injected anomaly on node 14: all four metrics jump for ~5 seconds and the anomaly
+score crosses both thresholds at the same moment, which the consumer turns into a critical
+alert. The score stays at 1.00 until the spike ages out of the 60-second window.*
 
 The simulator injects rare CPU/memory/latency/error-rate spikes per node
 (`ANOMALY_PROBABILITY`, `ANOMALY_DURATION_TICKS` env vars in `simulator/simulate.py`, default
