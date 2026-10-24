@@ -4,7 +4,7 @@ Real-time fleet anomaly detection: 50 simulated nodes stream CPU/memory/latency/
 metrics through Redis Streams into a FastAPI consumer that scores every node against a
 rolling 60-second window with a swappable ML model (Isolation Forest or LSTM Autoencoder),
 persists everything to Postgres, and pushes live state to a React dashboard over WebSockets.
-Anomalies above threshold raise Slack/email alerts.
+
 
 ![PulseAI dashboard: an About panel explaining nodes and anomaly scores, fleet health summary, grid of 50 nodes with status and anomaly score, the selected node's score and metric charts, and the alert feed](docs/screenshots/dashboard.png)
 
